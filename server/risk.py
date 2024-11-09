@@ -1,61 +1,43 @@
 from db import get_census_data_from_cache
+from weather import get_air_quality_data
+import numpy as np
 
-def calculate_risk(zip_code, num_competitors, competitors_with_ratings, alerts):
-    census_data = get_census_data_from_cache(zip_code)
-
-    if census_data is None:
-        return {'risk_score': None, 'error': 'No census data found'}
-        
-    median_income = float(census_data['Median Household Income'])
-    employment_rate = float(census_data['Employment Rate']) 
-    education_rate = float(census_data["Bachelor's Degree Rate"])
-    home_ownership = float(census_data['Home Ownership Rate'])
-    vacancy_rate = float(census_data['Vacancy Rate'])
+def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts):
+    if location and 'latitude' in location and 'longitude' in location:
+        air_quality = get_air_quality_data(location['latitude'], location['longitude'])
+        air_quality = air_quality['data']['aqi']
+    else:
+        air_quality = None
     
-    income_score = min(median_income / 100000, 1.0)  
-    employment_score = employment_rate
-    education_score = education_rate
-    ownership_score = home_ownership
-    vacancy_score = 1 - vacancy_rate
-    competitor_score = min(num_competitors / 10, 1.0)
-    competitor_rating_score = normalize_ratings(competitors_with_ratings)
-    
-    weights = {
-        'income': 0.25,
-        'employment': 0.15, 
-        'education': 0.15,
-        'ownership': 0.15,
-        'vacancy': 0.1,
-        'competitors': 0.1,
-        'competitor_ratings': 0.1
-    }
-    
-    risk_score = (
-        weights['income'] * income_score +
-        weights['employment'] * employment_score +
-        weights['education'] * education_score + 
-        weights['ownership'] * ownership_score +
-        weights['vacancy'] * vacancy_score +
-        weights['competitors'] * (1 - competitor_score) +
-        weights['competitor_ratings'] * (1 - competitor_rating_score)
-    )
-    
-    risk_score = round(risk_score * 100)
-
     demographic_risk = calculate_demographic_risk(zip_code)
     competitor_risk = calculate_competitor_risk(num_competitors, competitors_with_ratings)
+    
+    if air_quality:
+        if not alerts:
+            alerts = {'Event Type Count': {}}
+        alerts['Event Type Count']['air quality'] = air_quality
+        
     environment_risk = calculate_environment_risk(alerts['Event Type Count'] if alerts else None)
     regulatory_risk = calculate_regulatory_risk(alerts)
     crime_risk = calculate_crime_risk(zip_code)
     market_risk = calculate_market_risk(zip_code)
 
+    data = {
+        'air_quality': air_quality,
+        'alerts': alerts,
+        'num_competitors': num_competitors,
+        'competitors_with_ratings': competitors_with_ratings
+    }
+
     return {
+        'data': data,
         'demographic_risk': demographic_risk,
         'competitor_risk': competitor_risk,
         'environment_risk': environment_risk,
         'regulatory_risk': regulatory_risk,
         'crime_risk': crime_risk,
-        'market_risk': market_risk
+        'market_risk': market_risk,
+        'location': location
     }
 
 def normalize_ratings(competitors_with_ratings):
@@ -97,48 +79,39 @@ def calculate_demographic_risk(zip_code):
     home_ownership = float(census_data['Home Ownership Rate'])
     vacancy = float(census_data['Vacancy Rate'])
     median_household_value = float(census_data['Median House Value'])
-    
-    travel_time = min(travel_time / 100, 1.0)
-    education_rate = min(education_rate / 100, 1.0) 
-    income = min(income / 100000, 1.0) * 100
-    employment_rate = min(employment_rate / 100, 1.0) * 100
-    home_ownership = min(home_ownership / 100, 1.0) * 100
-    vacancy = min(vacancy / 100, 1.0) * 100
-    median_household_value = min(median_household_value / 1000000, 1.0) * 100
+
+    travel_time = np.log(travel_time + 1)
+    education_rate = np.log(education_rate + 1)
+    income = np.log(income + 1)
+    employment_rate = np.log(employment_rate + 1)
+    home_ownership = np.log(home_ownership + 1)
+    vacancy = np.log(vacancy + 1)
+    median_household_value = np.log(median_household_value + 1)
+
+    print(travel_time, education_rate, income, employment_rate, home_ownership, vacancy, median_household_value)
 
     weights = {
-        'travel_time': 0.15,
-        'education_rate': 0.15,
-        'income': 0.15,
-        'employment_rate': 0.15,
-        'home_ownership': 0.15,
-        'vacancy': 0.15,
-        'median_household_value': 0.10
+    'travel_time': 0.10,
+    'education_rate': 0.20,
+    'income': 0.25,
+    'employment_rate': 0.15,
+    'home_ownership': 0.10,
+    'vacancy': 0.10,
+    'median_household_value': 0.10
     }
 
-    risk_score = (
-        weights['travel_time'] * travel_time +
-        weights['education_rate'] * education_rate +
-        weights['income'] * income +
-        weights['employment_rate'] * employment_rate +
-        weights['home_ownership'] * home_ownership +
-        weights['vacancy'] * vacancy +
-        weights['median_household_value'] * median_household_value
-    )   
 
-    risk_score = round(risk_score * 100)
-
+    risk_score = sum(weights[key] * value for key, value in zip(weights.keys(), 
+                    [travel_time, education_rate, income, employment_rate, 
+                     home_ownership, vacancy, median_household_value]))
+    
+    min_score = 0
+    max_score = 15 
+    normalized_score = 100 * (risk_score - min_score) / (max_score - min_score)
+    
     return {
-        'risk_score': risk_score,
-        'components': {
-            'travel_time': round(travel_time),
-            'education_rate': round(education_rate * 100),
-            'income': round(income),
-            'employment_rate': round(employment_rate * 100),
-            'home_ownership': round(home_ownership * 100),
-            'vacancy': round(vacancy * 100),
-            'median_household_value': round(median_household_value)
-        }
+        'risk_score': round(max(0, min(normalized_score, 100))),
+        'components': {}
     }
 
 def calculate_competitor_risk(num_competitors, competitors_with_ratings):
@@ -235,3 +208,5 @@ def calculate_market_risk(zip_code):
         'risk_score': 100.0,
         'components': {}
     }  
+
+print(calculate_demographic_risk(75024))

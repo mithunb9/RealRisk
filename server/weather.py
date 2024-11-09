@@ -1,8 +1,28 @@
 from typing import Dict
 from collections import Counter
 import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def get_weather_data(state: str):
+    state_map = {
+        'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+        'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+        'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+        'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+        'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+        'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+        'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+        'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+        'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+        'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY'
+    }
+    
+    if len(state) != 2:
+        state = state_map.get(state.lower(), state)
+
     response = requests.get(f'https://api.weather.gov/alerts/?area={state}')
     if response.status_code == 200:
         return response.json()
@@ -40,6 +60,7 @@ def get_air_quality_data(latitude: float, longitude: float):
     if response.status_code == 200:
         return response.json()
     else:
+        print(response.json())
         raise Exception(f"Failed to fetch air quality data: {response.status_code}")
 
 def get_alert_summary(state: str, county: str):

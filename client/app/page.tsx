@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2 } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 
 const addressFormSchema = z.object({
   streetAddress: z.string().min(1, "Street address is required"),
@@ -51,8 +51,8 @@ export default function Home() {
   const coordsForm = useForm<z.infer<typeof coordsFormSchema>>({
     resolver: zodResolver(coordsFormSchema),
     defaultValues: {
-      latitude: "",
-      longitude: "",
+      latitude: "32.997826",
+      longitude: "-96.760584",
     },
   });
 
@@ -107,7 +107,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center p-8">
       {!response ? (
         <div className="flex gap-8 w-full max-w-6xl">
-          <div className="flex-1">
+          <div className="flex-1 opacity-50">
             <h2 className="text-xl font-bold mb-4">Search by APN</h2>
             <Form {...apnForm}>
               <form onSubmit={apnForm.handleSubmit(onAPNSubmit)} className="space-y-6">
@@ -118,14 +118,14 @@ export default function Home() {
                     <FormItem>
                       <FormLabel>Assessor's Parcel Number (APN)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter APN" {...field} />
+                        <Input disabled placeholder="Enter APN" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <Button disabled={isLoading} type="submit" className="w-full">
+                <Button disabled type="submit" className="w-full">
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -276,37 +276,62 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="mt-8 p-4 bg-gray-100 rounded-lg text-black flex flex-row gap-4">
-          <Score 
-            score={(response as any).demographic_risk?.risk_score || 0}
-            title="Demographic"
-            description="Population and socioeconomic factors"
-            components={(response as any).demographic_risk?.components}
-          />
-          <Score 
-            score={(response as any).competitor_risk?.risk_score || 0}
-            title="Competition"
-            description="Local market competition analysis"
-            components={(response as any).competitor_risk?.components}
-          />
-          <Score 
-            score={(response as any).environment_risk?.risk_score || 0}
-            title="Environmental"
-            description="Weather and natural hazard risks"
-            components={(response as any).environment_risk?.components}
-          />
-          <Score 
-            score={(response as any).regulatory_risk?.risk_score || 0}
-            title="Regulatory"
-            description="Building codes and zoning laws"
-            components={(response as any).regulatory_risk?.components}
-          />
-          <Score 
-            score={(response as any).crime_risk?.risk_score || 0}
-            title="Crime"
-            description="Local crime statistics and safety"
-            components={(response as any).crime_risk?.components}
-          />
+        <div>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-6 w-6" />
+              <h1 className="text-2xl font-bold">
+                {(response as any).location?.location || "Location Not Found"}
+              </h1>
+            </div>
+            <div className="text-sm text-gray-500">
+              Latitude: {(response as any).location?.latitude || "N/A"}
+              {" | "}
+              Longitude: {(response as any).location?.longitude || "N/A"}
+            </div>
+            <iframe 
+              src={`https://www.google.com/maps/embed?pb=!1m14!1m12!1m3!1d14273.829742374324!2d${(response as any).location?.longitude}!3d${(response as any).location?.latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!5e1!3m2!1sen!2sus!4v1731194741378!5m2!1sen!2sus`} 
+              width="600"
+              height="400"
+              style={{border:0}}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="rounded-lg"
+            />
+          </div>
+          <div className="mt-8 p-6 bg-gray-100 rounded-lg text-black grid grid-cols-5 gap-6">
+            <Score 
+              score={(response as any).demographic_risk?.risk_score || 0}
+              title="Demographic"
+              description="Population and socioeconomic factors"
+              components={(response as any).demographic_risk?.components}
+            />
+            <Score 
+              score={(response as any).competitor_risk?.risk_score || 0}
+              title="Competition"
+              description="Local market competition analysis"
+              components={(response as any).competitor_risk?.components}
+            />
+            <Score 
+              score={(response as any).environment_risk?.risk_score || 0}
+              title="Environmental"
+              description="Weather and natural hazard risks"
+              components={(response as any).environment_risk?.components}
+            />
+            <Score 
+              score={(response as any).regulatory_risk?.risk_score || 0}
+              title="Regulatory"
+              description="Building codes and zoning laws"
+              components={(response as any).regulatory_risk?.components}
+            />
+            <Score 
+              score={(response as any).crime_risk?.risk_score || 0}
+              title="Crime"
+              description="Local crime statistics and safety"
+              components={(response as any).crime_risk?.components}
+            />
+          </div>
         </div>
       )}
     </div>
