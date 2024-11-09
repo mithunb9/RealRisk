@@ -1,6 +1,5 @@
 "use client"
 
-import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
 interface ScoreProps {
@@ -10,23 +9,18 @@ interface ScoreProps {
 
 export function Score({ score, className }: ScoreProps) {
   const normalizedScore = Math.min(Math.max(score, 0), 100)
+  
+  const getScoreColor = (score: number) => {
+    if (score <= 20) return "text-green-500"
+    if (score <= 40) return "text-emerald-500"
+    if (score <= 60) return "text-yellow-500"
+    if (score <= 80) return "text-orange-500"
+    return "text-red-500"
+  }
 
   return (
-    <div className={cn("relative w-32 h-32", className)}>
-      {/*  progress background */}
-      <div className="absolute inset-0">
-        <Progress
-          value={normalizedScore}
-          className="h-full w-full rounded-full [&>div]:rounded-full"
-        />
-      </div>
-      
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center">
-          <span className="text-2xl font-bold">{normalizedScore}</span>
-          <span className="text-sm block text-muted-foreground">Risk Score</span>
-        </div>
-      </div>
+    <div className={cn("text-center text-4xl font-bold tracking-tighter", getScoreColor(normalizedScore))}>
+      {normalizedScore}
     </div>
   )
 }

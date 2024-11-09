@@ -79,3 +79,63 @@ def normalize_ratings(competitors_with_ratings):
         normalized_scores.append(score)
     
     return sum(normalized_scores) / len(normalized_scores)
+
+
+def calculate_demographic_risk(zip_code):
+    census_data = get_census_data_from_cache(zip_code)
+    
+    if census_data is None:
+        return {'risk_score': None, 'error': 'No census data found'}
+
+    travel_time = float(census_data['Mean Travel Time to Work'])
+    education_rate = float(census_data["Bachelor's Degree Rate"])
+    income = float(census_data['Median Household Income'])
+    employment_rate = float(census_data['Employment Rate'])
+    home_ownership = float(census_data['Home Ownership Rate'])
+    vacancy = float(census_data['Vacancy Rate'])
+    median_household_value = float(census_data['Median House Value'])
+    
+    travel_time = min(travel_time / 100, 1.0)
+    education_rate = min(education_rate / 100, 1.0) 
+    income = min(income / 100000, 1.0) * 100
+    employment_rate = min(employment_rate / 100, 1.0) * 100
+    home_ownership = min(home_ownership / 100, 1.0) * 100
+    vacancy = min(vacancy / 100, 1.0) * 100
+    median_household_value = min(median_household_value / 1000000, 1.0) * 100
+
+    weights = {
+        'travel_time': 0.15,
+        'education_rate': 0.15,
+        'income': 0.15,
+        'employment_rate': 0.15,
+        'home_ownership': 0.15,
+        'vacancy': 0.15,
+        'median_household_value': 0.10
+    }
+
+    risk_score = (
+        weights['travel_time'] * travel_time +
+        weights['education_rate'] * education_rate +
+        weights['income'] * income +
+        weights['employment_rate'] * employment_rate +
+        weights['home_ownership'] * home_ownership +
+        weights['vacancy'] * vacancy +
+        weights['median_household_value'] * median_household_value
+    )   
+
+    risk_score = round(risk_score * 100)
+
+    return {
+        'risk_score': risk_score,
+        'components': {
+            'travel_time': round(travel_time),
+            'education_rate': round(education_rate * 100),
+            'income': round(income),
+            'employment_rate': round(employment_rate * 100),
+            'home_ownership': round(home_ownership * 100),
+            'vacancy': round(vacancy * 100),
+            'median_household_value': round(median_household_value)
+        }
+    }
+
+print(calculate_demographic_risk("75024"))
