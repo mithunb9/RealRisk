@@ -1,26 +1,108 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import * as React from "react"
+import { TrendingUp } from "lucide-react"
+import { Label, Pie, PieChart } from "recharts"
 
-interface ScoreProps {
-  score: number 
-  className?: string
-}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 
-export function Score({ score, className }: ScoreProps) {
-  const normalizedScore = Math.min(Math.max(score, 0), 100)
-  
-  const getScoreColor = (score: number) => {
-    if (score <= 20) return "text-green-500"
-    if (score <= 40) return "text-emerald-500"
-    if (score <= 60) return "text-yellow-500"
-    if (score <= 80) return "text-orange-500"
-    return "text-red-500"
+const chartData = [
+  { category: "score", value: 100, fill: "hsl(var(--chart-1))" }
+]
+
+const chartConfig = {
+  score: {
+    label: "Risk Score",
+    color: "hsl(var(--chart-1))",
   }
+} satisfies ChartConfig
+
+export default function Score({ score }: { score: number }) {
+  const data = React.useMemo(() => {
+    return [{
+      category: "score",
+      value: score,
+      fill: "hsl(var(--chart-1))"
+    }]
+  }, [score])
 
   return (
-    <div className={cn("text-center text-4xl font-bold tracking-tighter", getScoreColor(normalizedScore))}>
-      {normalizedScore}
-    </div>
+    <Card className="flex flex-col">
+      <CardHeader className="items-center pb-0">
+        <CardTitle>Risk Score</CardTitle>
+        <CardDescription>Property Risk Assessment</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1 pb-0">
+        <ChartContainer
+          config={chartConfig}
+          className="mx-auto aspect-square max-h-[250px]"
+        >
+          <PieChart>
+            <ChartTooltip
+              cursor={false}
+              content={<ChartTooltipContent hideLabel />}
+            />
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="category"
+              innerRadius={60}
+              strokeWidth={5}
+            >
+              <Label
+                content={({ viewBox }) => {
+                  if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                    return (
+                      <text
+                        x={viewBox.cx}
+                        y={viewBox.cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                      >
+                        <tspan
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          className="fill-foreground text-3xl font-bold"
+                        >
+                          {score}
+                        </tspan>
+                        <tspan
+                          x={viewBox.cx}
+                          y={(viewBox.cy || 0) + 24}
+                          className="fill-muted-foreground"
+                        >
+                          Risk Score
+                        </tspan>
+                      </text>
+                    )
+                  }
+                }}
+              />
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+      </CardContent>
+      <CardFooter className="flex-col gap-2 text-sm">
+        <div className="flex items-center gap-2 font-medium leading-none">
+          Risk Score Assessment <TrendingUp className="h-4 w-4" />
+        </div>
+        <div className="leading-none text-muted-foreground">
+          Based on property location and census data
+        </div>
+      </CardFooter>
+    </Card>
   )
 }

@@ -42,17 +42,34 @@ def calculate_risk(zip_code, num_competitors, competitors_with_ratings, alerts):
     
     risk_score = round(risk_score * 100)
     
+    # return {
+    #     'risk_score': risk_score,
+    #     'components': {
+    #         'income_score': round(income_score * 100),
+    #         'employment_score': round(employment_score * 100),
+    #         'education_score': round(education_score * 100),
+    #         'ownership_score': round(ownership_score * 100),
+    #         'vacancy_score': round(vacancy_score * 100),
+    #         'competitor_score': round((1 - competitor_score) * 100),
+    #         'competitor_rating_score': round((1 - competitor_rating_score) * 100)
+    #     }
+    # }
+
+    demographic_risk = calculate_demographic_risk(zip_code)
+    competitor_risk = calculate_competitor_risk(num_competitors, competitors_with_ratings)
+    environment_risk = calculate_environment_risk(alerts)
+    regulatory_risk = calculate_regulatory_risk(alerts)
+    crime_risk = calculate_crime_risk(zip_code)
+    market_risk = calculate_market_risk(zip_code)
+
+
     return {
-        'risk_score': risk_score,
-        'components': {
-            'income_score': round(income_score * 100),
-            'employment_score': round(employment_score * 100),
-            'education_score': round(education_score * 100),
-            'ownership_score': round(ownership_score * 100),
-            'vacancy_score': round(vacancy_score * 100),
-            'competitor_score': round((1 - competitor_score) * 100),
-            'competitor_rating_score': round((1 - competitor_rating_score) * 100)
-        }
+        'demographic_risk': demographic_risk,
+        'competitor_risk': competitor_risk,
+        'environment_risk': environment_risk,
+        'regulatory_risk': regulatory_risk,
+        'crime_risk': crime_risk,
+        'market_risk': market_risk
     }
 
 def normalize_ratings(competitors_with_ratings):
@@ -138,4 +155,32 @@ def calculate_demographic_risk(zip_code):
         }
     }
 
-print(calculate_demographic_risk("75024"))
+def calculate_competitor_risk(num_competitors, competitors_with_ratings):
+    return {
+        'risk_score': 0.0,
+        'components': {}
+    }
+
+def calculate_environment_risk(alerts):
+    return {
+        'risk_score': 0.0,
+        'components': {}
+    }
+
+def calculate_regulatory_risk(alerts):
+    return {
+        'risk_score': 0.0,
+        'components': {}
+    }
+
+def calculate_crime_risk(zip_code):
+    return {
+        'risk_score': 0.0,
+        'components': {}
+    }
+
+def calculate_market_risk(zip_code):
+    return {
+        'risk_score': 0.0,
+        'components': {}
+    }  
