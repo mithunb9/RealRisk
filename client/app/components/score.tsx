@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { TrendingUp } from "lucide-react"
-import { Label, Pie, PieChart } from "recharts"
+import { Label, Pie, PieChart, Cell } from "recharts"
 
 import {
   Card,
@@ -19,49 +19,85 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 
-const chartData = [
-  { category: "score", value: 100, fill: "hsl(var(--chart-1))" }
+interface ScoreProps {
+  score: number
+  title: string
+  description: string
+  components?: Record<string, number>
+}
+
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))'
 ]
 
-const chartConfig = {
-  score: {
-    label: "Risk Score",
-    color: "hsl(var(--chart-1))",
-  }
-} satisfies ChartConfig
-
-export default function Score({ score }: { score: number }) {
+export default function Score({ score, title, description, components }: ScoreProps) {
   const data = React.useMemo(() => {
-    return [{
-      category: "score",
-      value: score,
-      fill: "hsl(var(--chart-1))"
-    }]
-  }, [score])
+    if (!components) {
+      return [{
+        name: "score",
+        value: score,
+      }]
+    }
+
+    return Object.entries(components).map(([key, value], index) => ({
+      name: key.replace(/_/g, ' '),
+      value: value,
+      fill: COLORS[index % COLORS.length]
+    }))
+  }, [score, components])
+
+  const config: ChartConfig = {
+    score: {
+      label: "Risk Score"
+    }
+  }
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
-        <CardTitle>Risk Score</CardTitle>
-        <CardDescription>Property Risk Assessment</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
-          config={chartConfig}
+          config={config}
           className="mx-auto aspect-square max-h-[250px]"
         >
           <PieChart>
             <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0]
+                  return (
+                    <div className="rounded-lg border bg-background p-2 shadow-sm">
+                      <div className="grid grid-cols-2 gap-2">
+                        <span className="font-medium">{data.name}</span>
+                        <span className="font-medium">{data.value}</span>
+                      </div>
+                    </div>
+                  )
+                }
+                return null
+              }}
             />
             <Pie
               data={data}
               dataKey="value"
-              nameKey="category"
+              nameKey="name"
               innerRadius={60}
-              strokeWidth={5}
+              outerRadius={80}
+              strokeWidth={2}
+              stroke="white"
             >
+              {data.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.fill || COLORS[index % COLORS.length]} />
+              ))}
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {
@@ -82,7 +118,7 @@ export default function Score({ score }: { score: number }) {
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground"
+                          className="fill-muted-foreground text-sm"
                         >
                           Risk Score
                         </tspan>
@@ -97,11 +133,23 @@ export default function Score({ score }: { score: number }) {
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 font-medium leading-none">
-          Risk Score Assessment <TrendingUp className="h-4 w-4" />
+          Risk Assessment <TrendingUp className="h-4 w-4" />
         </div>
-        <div className="leading-none text-muted-foreground">
-          Based on property location and census data
-        </div>
+        {components && (
+          <div className="w-full grid grid-cols-2 gap-2">
+            {Object.entries(components).map(([key, value], index) => (
+              <div key={key} className="flex items-center gap-2">
+                <div 
+                  className="w-3 h-3 rounded-sm"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                />
+                <span className="text-muted-foreground capitalize">
+                  {key.replace(/_/g, ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardFooter>
     </Card>
   )

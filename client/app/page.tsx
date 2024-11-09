@@ -277,11 +277,36 @@ export default function Home() {
         </div>
       ) : (
         <div className="mt-8 p-4 bg-gray-100 rounded-lg text-black flex flex-row gap-4">
-          <Score score={(response as any).demographic_risk?.risk_score || 0} />
-          <Score score={(response as any).competitor_risk?.risk_score || 0} />
-          <Score score={(response as any).environment_risk?.risk_score || 0} />
-          <Score score={(response as any).regulatory_risk?.risk_score || 0} />
-          <Score score={(response as any).crime_risk?.risk_score || 0} />
+          <Score 
+            score={(response as any).demographic_risk?.risk_score || 0}
+            title="Demographic"
+            description="Population and socioeconomic factors"
+            components={(response as any).demographic_risk?.components}
+          />
+          <Score 
+            score={(response as any).competitor_risk?.risk_score || 0}
+            title="Competition"
+            description="Local market competition analysis"
+            components={(response as any).competitor_risk?.components}
+          />
+          <Score 
+            score={(response as any).environment_risk?.risk_score || 0}
+            title="Environmental"
+            description="Weather and natural hazard risks"
+            components={(response as any).environment_risk?.components}
+          />
+          <Score 
+            score={(response as any).regulatory_risk?.risk_score || 0}
+            title="Regulatory"
+            description="Building codes and zoning laws"
+            components={(response as any).regulatory_risk?.components}
+          />
+          <Score 
+            score={(response as any).crime_risk?.risk_score || 0}
+            title="Crime"
+            description="Local crime statistics and safety"
+            components={(response as any).crime_risk?.components}
+          />
         </div>
       )}
     </div>

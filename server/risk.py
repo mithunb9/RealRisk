@@ -41,27 +41,13 @@ def calculate_risk(zip_code, num_competitors, competitors_with_ratings, alerts):
     )
     
     risk_score = round(risk_score * 100)
-    
-    # return {
-    #     'risk_score': risk_score,
-    #     'components': {
-    #         'income_score': round(income_score * 100),
-    #         'employment_score': round(employment_score * 100),
-    #         'education_score': round(education_score * 100),
-    #         'ownership_score': round(ownership_score * 100),
-    #         'vacancy_score': round(vacancy_score * 100),
-    #         'competitor_score': round((1 - competitor_score) * 100),
-    #         'competitor_rating_score': round((1 - competitor_rating_score) * 100)
-    #     }
-    # }
 
     demographic_risk = calculate_demographic_risk(zip_code)
     competitor_risk = calculate_competitor_risk(num_competitors, competitors_with_ratings)
-    environment_risk = calculate_environment_risk(alerts)
+    environment_risk = calculate_environment_risk(alerts['Event Type Count'] if alerts else None)
     regulatory_risk = calculate_regulatory_risk(alerts)
     crime_risk = calculate_crime_risk(zip_code)
     market_risk = calculate_market_risk(zip_code)
-
 
     return {
         'demographic_risk': demographic_risk,
@@ -157,30 +143,95 @@ def calculate_demographic_risk(zip_code):
 
 def calculate_competitor_risk(num_competitors, competitors_with_ratings):
     return {
-        'risk_score': 0.0,
+        'risk_score': 100.0,
         'components': {}
     }
 
-def calculate_environment_risk(alerts):
+def calculate_environment_risk(event_counts):
+    if not event_counts:
+        return {
+            'risk_score': 0,
+            'components': {}
+        }
+        
+    weights = {
+        'tornado': 0.25,
+        'flood': 0.20,
+        'severe thunderstorm': 0.15,
+        'winter storm': 0.15,
+        'wind': 0.1,
+        'air quality': 0.1,
+        'other': 0.05
+    }
+    
+    components = {
+        'tornado': 0,
+        'flood': 0,
+        'severe thunderstorm': 0,
+        'winter storm': 0,
+        'wind': 0,
+        'air quality': 0,
+        'other': 0
+    }
+    
+    for event_type, count in event_counts.items():
+        event_type = event_type.lower()
+        
+        # Map severity based on count
+        if count >= 3:
+            severity = 'extreme'
+        elif count == 2:
+            severity = 'severe'
+        elif count == 1:
+            severity = 'moderate'
+        else:
+            severity = 'minor'
+            
+        severity_scores = {
+            'extreme': 100,
+            'severe': 75,
+            'moderate': 50,
+            'minor': 25
+        }
+        
+        score = severity_scores[severity]
+        
+        # Add to appropriate component
+        matched = False
+        for component in components:
+            if component in event_type:
+                components[component] = max(components[component], score)
+                matched = True
+                break
+                
+        if not matched:
+            components['other'] = max(components['other'], score)
+    
+    # Calculate weighted risk score
+    risk_score = sum(
+        components[component] * weights[component]
+        for component in weights.keys()
+    )
+    
     return {
-        'risk_score': 0.0,
-        'components': {}
+        'risk_score': round(risk_score),
+        'components': components
     }
 
 def calculate_regulatory_risk(alerts):
     return {
-        'risk_score': 0.0,
+        'risk_score': 100.0,
         'components': {}
     }
 
 def calculate_crime_risk(zip_code):
     return {
-        'risk_score': 0.0,
+        'risk_score': 100.0,
         'components': {}
     }
 
 def calculate_market_risk(zip_code):
     return {
-        'risk_score': 0.0,
+        'risk_score': 100.0,
         'components': {}
     }  

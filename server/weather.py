@@ -35,6 +35,13 @@ def get_event_summary_for_county(data: dict, county_name: str) -> Dict[str, dict
 
     return summary
 
+def get_air_quality_data(latitude: float, longitude: float):
+    response = requests.get(f'https://api.waqi.info/feed/geo:{latitude};{longitude}/?token={os.getenv("AIR_API_KEY")}')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Failed to fetch air quality data: {response.status_code}")
+
 def get_alert_summary(state: str, county: str):
     data = get_weather_data(state)
     return get_event_summary_for_county(data, county)
