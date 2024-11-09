@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { Score } from "./components/score";
 
 export default function Home() {
   const [message, setMessage] = useState('2102 Hummingbird St Princeton, TX 75407');
@@ -36,9 +37,7 @@ export default function Home() {
 
       {response && (
         <div className="p-4 bg-gray-100 rounded-lg text-black">
-          <pre className="whitespace-pre-wrap">
-            {JSON.stringify(response, null, 2)}
-          </pre>
+          <Score score={(response as any).risk_score || 0} />
         </div>
       )}
     </div>
