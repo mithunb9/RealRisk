@@ -12,6 +12,7 @@ def run_agent(address, location):
     zip_code = address['zip_code']
     state_name = address['state']
     city_name = address['city']
+    county = address['county']
 
     """ COMPETITORS """
     competitors_search = search(f"housing builders near {city_name}, {state_name} {zip_code}", zip_code)
@@ -29,6 +30,13 @@ def run_agent(address, location):
     competitors_with_ratings = [r for r in competitors_with_ratings if r is not None]
 
     """ ENVIRONMENT """
-    alerts = get_alert_summary(state_name, address['county'])
+    alerts = get_alert_summary(state_name, county)
 
-    return calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts)
+    risks = calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts, state_name, county, city_name)
+
+    """ AI """
+    ai_response = execute(f"Given the following data, provide a summary of the risk factors and the overall risk score: {risks}. Only return the summary, no other text. I want your recommendation on whether to build in this location or not.", model="gpt-4o")
+
+    risks['ai_summary'] = ai_response.choices[0].message.content
+
+    return risks

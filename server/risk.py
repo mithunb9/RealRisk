@@ -1,8 +1,13 @@
 from db import get_census_data_from_cache
-from weather import get_air_quality_data
+from weather import get_air_quality_data, get_alert_summary
+from crime import get_crime_data
 import numpy as np
+from regulation import get_regulatory_score
 
-def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts):
+def percent_difference(a, b):
+    return (a - b) / ((a + b) / 2)
+
+def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts, state_name, county, city):
     if location and 'latitude' in location and 'longitude' in location:
         air_quality = get_air_quality_data(location['latitude'], location['longitude'])
         air_quality = air_quality['data']['aqi']
@@ -17,10 +22,9 @@ def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings
             alerts = {'Event Type Count': {}}
         alerts['Event Type Count']['air quality'] = air_quality
         
-    environment_risk = calculate_environment_risk(alerts['Event Type Count'] if alerts else None)
-    regulatory_risk = calculate_regulatory_risk(alerts)
-    crime_risk = calculate_crime_risk(zip_code)
-    market_risk = calculate_market_risk(zip_code)
+    environment_risk = calculate_environment_risk(alerts)
+    regulatory_risk = calculate_regulatory_risk(city, county)
+    crime_risk = calculate_crime_risk(county, state_name)
 
     data = {
         'air_quality': air_quality,
@@ -36,7 +40,6 @@ def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings
         'environment_risk': environment_risk,
         'regulatory_risk': regulatory_risk,
         'crime_risk': crime_risk,
-        'market_risk': market_risk,
         'location': location
     }
 
@@ -65,14 +68,12 @@ def normalize_ratings(competitors_with_ratings):
     
     return sum(normalized_scores) / len(normalized_scores)
 
-
 def calculate_demographic_risk(zip_code):
     census_data = get_census_data_from_cache(zip_code)
     
     if census_data is None:
         return {'risk_score': None, 'error': 'No census data found'}
 
-    travel_time = float(census_data['Mean Travel Time to Work'])
     education_rate = float(census_data["Bachelor's Degree Rate"])
     income = float(census_data['Median Household Income'])
     employment_rate = float(census_data['Employment Rate'])
@@ -80,133 +81,124 @@ def calculate_demographic_risk(zip_code):
     vacancy = float(census_data['Vacancy Rate'])
     median_household_value = float(census_data['Median House Value'])
 
-    travel_time = np.log(travel_time + 1)
-    education_rate = np.log(education_rate + 1)
-    income = np.log(income + 1)
-    employment_rate = np.log(employment_rate + 1)
-    home_ownership = np.log(home_ownership + 1)
-    vacancy = np.log(vacancy + 1)
-    median_household_value = np.log(median_household_value + 1)
+    risk_score = (-percent_difference(education_rate, .375) * 100 
+                 - percent_difference(income, 37585) * 100 
+                 - percent_difference(employment_rate, .5925) * 100 
+                 - percent_difference(home_ownership, 0.656) * 100 
+                 + percent_difference(vacancy, 0.069) * 100 
+                 - percent_difference(median_household_value, 420400) * 100) / 6 + 50
 
-    print(travel_time, education_rate, income, employment_rate, home_ownership, vacancy, median_household_value)
-
-    weights = {
-    'travel_time': 0.10,
-    'education_rate': 0.20,
-    'income': 0.25,
-    'employment_rate': 0.15,
-    'home_ownership': 0.10,
-    'vacancy': 0.10,
-    'median_household_value': 0.10
-    }
-
-
-    risk_score = sum(weights[key] * value for key, value in zip(weights.keys(), 
-                    [travel_time, education_rate, income, employment_rate, 
-                     home_ownership, vacancy, median_household_value]))
-    
-    min_score = 0
-    max_score = 15 
-    normalized_score = 100 * (risk_score - min_score) / (max_score - min_score)
-    
     return {
-        'risk_score': round(max(0, min(normalized_score, 100))),
-        'components': {}
+        'risk_score': int(risk_score),
+        'components': {
+            'Education Rate': f'{education_rate * 100:.2f}%',
+            'Income': f'${income:,.2f}',
+            'Employment Rate': f'{employment_rate * 100:.2f}%', 
+            'Home Ownership': f'{home_ownership * 100:.2f}%',
+            'Vacancy': f'{vacancy * 100:.2f}%',
+            'Median Household Value': f'${median_household_value:,.2f}'
+        }, 'tooltip': {
+            'Education Rate': 'Percentage of population with a Bachelor\'s degree',
+            'Income': 'Median household income',
+            'Employment Rate': 'Percentage of population employed',
+            'Home Ownership': 'Percentage of households that are owner-occupied',
+            'Vacancy': 'Percentage of rental units that are vacant',
+            'Median Household Value': 'Median value of owner-occupied homes'
+        }
     }
 
 def calculate_competitor_risk(num_competitors, competitors_with_ratings):
+    normalized_ratings = normalize_ratings(competitors_with_ratings)
+    
+    if num_competitors == 0:
+        return {
+            'risk_score': 20,
+            'components': {
+                'Number of Competitors': num_competitors,
+                'Normalized Rating Score': '100%'
+            }
+        }
+    
+    normalized_ratings = normalize_ratings(competitors_with_ratings)
+    
     return {
-        'risk_score': 100.0,
-        'components': {}
+        'risk_score': 20,
+        'components': {
+            'Normalized Rating Score': f'{normalized_ratings * 100:.2f}%',
+            'Number of Competitors': num_competitors
+        }, 'tooltip': {
+            'Normalized Rating Score': 'Normalized rating score based on number of reviews and ratings',
+            'Number of Competitors': 'Number of competitors in the local market'
+        }
     }
-
+    
 def calculate_environment_risk(event_counts):
     if not event_counts:
         return {
             'risk_score': 0,
             'components': {}
         }
-        
-    weights = {
-        'tornado': 0.25,
-        'flood': 0.20,
-        'severe thunderstorm': 0.15,
-        'winter storm': 0.15,
-        'wind': 0.1,
-        'air quality': 0.1,
-        'other': 0.05
-    }
-    
-    components = {
-        'tornado': 0,
-        'flood': 0,
-        'severe thunderstorm': 0,
-        'winter storm': 0,
-        'wind': 0,
-        'air quality': 0,
-        'other': 0
-    }
-    
-    for event_type, count in event_counts.items():
-        event_type = event_type.lower()
-        
-        # Map severity based on count
-        if count >= 3:
-            severity = 'extreme'
-        elif count == 2:
-            severity = 'severe'
-        elif count == 1:
-            severity = 'moderate'
-        else:
-            severity = 'minor'
-            
-        severity_scores = {
-            'extreme': 100,
-            'severe': 75,
-            'moderate': 50,
-            'minor': 25
+
+    total_events = event_counts.get('Total Events', 0)
+
+    flood_advisory = event_counts['Event Type Count'].get('Flood Advisory', 0)
+    tornado_watch = event_counts['Event Type Count'].get('Tornado Watch', 0) 
+    flood_watch = event_counts['Event Type Count'].get('Flood Watch', 0)
+    air_quality_alerts = event_counts['Event Type Count'].get('air quality', 0)
+    other = total_events - (flood_advisory + tornado_watch + flood_watch)
+
+    minor_severity = event_counts['Severity Count'].get('Minor', 0)
+    extreme_severity = event_counts['Severity Count'].get('Extreme', 0) 
+    severe_severity = event_counts['Severity Count'].get('Severe', 0)
+
+    risk_score = (
+        - percent_difference(minor_severity, 0.2) * 100 
+        - percent_difference(extreme_severity, 0.1) * 100 
+        - percent_difference(severe_severity, 0.1) * 100 
+        + percent_difference(flood_advisory, 0.15) * 100 
+        + percent_difference(tornado_watch, 0.3) * 100 
+        + percent_difference(flood_watch, 0.15) * 100 
+        + percent_difference(air_quality_alerts, 0.1) * 100 
+        + percent_difference(other, 0.15) * 100
+    ) / 8 + 50
+
+    return {
+        'risk_score': int(risk_score),
+        'components': {
+            'Flood Advisory': flood_advisory,
+            'Tornado Watch': tornado_watch,
+            'Flood Watch': flood_watch,
+            'Air Quality Alerts': air_quality_alerts,
+            'Other': other
+        }, 'tooltip': {
+            'Flood Advisory': 'Number of flood advisory events',
+            'Tornado Watch': 'Number of tornado watch events',
+            'Flood Watch': 'Number of flood watch events',
+            'Air Quality Alerts': 'Number of air quality alert events',
+            'Other': 'Number of other events'
         }
-        
-        score = severity_scores[severity]
-        
-        # Add to appropriate component
-        matched = False
-        for component in components:
-            if component in event_type:
-                components[component] = max(components[component], score)
-                matched = True
-                break
-                
-        if not matched:
-            components['other'] = max(components['other'], score)
-    
-    # Calculate weighted risk score
-    risk_score = sum(
-        components[component] * weights[component]
-        for component in weights.keys()
-    )
+    }
+
+def calculate_regulatory_risk(city, county):
+    regulatory_score, response = get_regulatory_score(city, county)
     
     return {
-        'risk_score': round(risk_score),
-        'components': components
+        'risk_score': regulatory_score,
+        'components': {
+            'Regulatory Score': regulatory_score,
+        }, 'tooltip': {
+            'Regulatory Score': 'Score based on the difficulty to navigate regulatory procedures and documents. Generated by GPT-4o. Click for more details.'
+        }
     }
 
-def calculate_regulatory_risk(alerts):
+def calculate_crime_risk(county, state):
+    crime_rate = get_crime_data(county, state)
+
     return {
-        'risk_score': 100.0,
-        'components': {}
+        'risk_score': 75,
+        'components': {
+            'Crime Rate': f'{crime_rate * 100:.2f}%'
+        }, 'tooltip': {
+            'Crime Rate': 'Crime rate in the county'
+        }
     }
-
-def calculate_crime_risk(zip_code):
-    return {
-        'risk_score': 100.0,
-        'components': {}
-    }
-
-def calculate_market_risk(zip_code):
-    return {
-        'risk_score': 100.0,
-        'components': {}
-    }  
-
-print(calculate_demographic_risk(75024))

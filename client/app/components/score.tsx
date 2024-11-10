@@ -3,6 +3,20 @@
 import * as React from "react"
 import { TrendingUp } from "lucide-react"
 import { Label, Pie, PieChart, Cell } from "recharts"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 import {
   Card,
@@ -15,8 +29,6 @@ import {
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from "@/components/ui/chart"
 
 interface ScoreProps {
@@ -24,33 +36,22 @@ interface ScoreProps {
   title: string
   description: string
   components?: Record<string, number>
+  showDetails?: boolean
+  tooltips?: Record<string, string>
 }
 
-const COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
-  'hsl(var(--chart-6))',
-  'hsl(var(--chart-7))'
-]
+const getRiskColor = (score: number) => {
+  if (score > 80) return '#BD1E1E'
+  if (score > 50) return '#F59E0B'
+  return '#4DA167'
+}
 
-export default function Score({ score, title, description, components }: ScoreProps) {
-  const data = React.useMemo(() => {
-    if (!components) {
-      return [{
-        name: "score",
-        value: score,
-      }]
-    }
-
-    return Object.entries(components).map(([key, value], index) => ({
-      name: key.replace(/_/g, ' '),
-      value: value,
-      fill: COLORS[index % COLORS.length]
-    }))
-  }, [score, components])
+export default function Score({ score, title, description, components, showDetails, tooltips }: ScoreProps) {
+  const data = React.useMemo(() => [{
+    name: "Risk Score",
+    value: score,
+    fill: getRiskColor(score)
+  }], [score])
 
   const config: ChartConfig = {
     score: {
@@ -70,33 +71,19 @@ export default function Score({ score, title, description, components }: ScorePr
           className="mx-auto aspect-square max-h-[250px]"
         >
           <PieChart>
-            <ChartTooltip
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0]
-                  return (
-                    <div className="rounded-lg border bg-background p-2 shadow-sm">
-                      <div className="grid grid-cols-2 gap-2">
-                        <span className="font-medium">{data.name}</span>
-                        <span className="font-medium">{data.value}</span>
-                      </div>
-                    </div>
-                  )
-                }
-                return null
-              }}
-            />
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
               innerRadius={60}
               outerRadius={80}
+              startAngle={180}
+              endAngle={0}
               strokeWidth={2}
               stroke="white"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill || COLORS[index % COLORS.length]} />
+                <Cell key={`cell-${index}`} fill={entry.fill} />
               ))}
               <Label
                 content={({ viewBox }) => {
@@ -112,6 +99,7 @@ export default function Score({ score, title, description, components }: ScorePr
                           x={viewBox.cx}
                           y={viewBox.cy}
                           className="fill-foreground text-3xl font-bold"
+                          style={{ fill: getRiskColor(score) }}
                         >
                           {score}
                         </tspan>
@@ -135,20 +123,38 @@ export default function Score({ score, title, description, components }: ScorePr
         <div className="flex items-center gap-2 font-medium leading-none">
           Risk Assessment <TrendingUp className="h-4 w-4" />
         </div>
-        {components && (
-          <div className="w-full grid grid-cols-2 gap-2">
-            {Object.entries(components).map(([key, value], index) => (
-              <div key={key} className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-sm"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                />
-                <span className="text-muted-foreground capitalize">
-                  {key.replace(/_/g, ' ')}
-                </span>
-              </div>
-            ))}
-          </div>
+        {showDetails && components && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-left w-1/2">Component</TableHead>
+                <TableHead className="text-left w-1/2">Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(components).map(([key, value]) => (
+                <TableRow key={key}>
+                  <TableCell className="font-medium">
+                    {tooltips?.[key] ? (
+                      <Tooltip>
+                        <TooltipTrigger className="cursor-help text-left">
+                          {key.replace(/_/g, ' ')}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {tooltips[key]}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      key.replace(/_/g, ' ')
+                    )}
+                  </TableCell>
+                  <TableCell className="text-left">
+                    {String(value)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </CardFooter>
     </Card>
