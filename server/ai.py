@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from typing import List
 from google import search
 from pydantic import BaseModel
+import re
 
 load_dotenv()
 
@@ -12,7 +13,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 class PointsResponse(BaseModel):
     points: list[str]
 
-def execute(prompt, model="gpt-4o-mini", response_format=None, history=None, stream=False, search=False):
+def execute(prompt, model="gpt-4o-mini", response_format=None, history=None, stream=False):
     messages = []
     
     if history:
@@ -20,6 +21,16 @@ def execute(prompt, model="gpt-4o-mini", response_format=None, history=None, str
             {"role": msg["role"], "content": msg["content"]} 
             for msg in history
         ])
+    
+
+    search_pattern = r"/search\s+(.+)"
+    search_match = re.search(search_pattern, prompt)
+    
+    if search_match:
+        search_query = search_match.group(1)
+        search_results = search(search_query)
+        
+        prompt = f"{prompt}\n\nSearch results: {search_results}"
     
     messages.append({"role": "user", "content": prompt})
 

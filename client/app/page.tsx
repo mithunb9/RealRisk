@@ -374,7 +374,7 @@ export default function Home() {
                   <h2 className="text-xl font-bold mb-4">Analysis</h2>
                   {conversationHistory.map((msg, index) => (
                     <div key={index} className={`mb-4 ${msg.role === 'assistant' ? 'bg-gray-200 p-4 rounded-lg' : 'text-gray-700'}`}>
-                      <strong>{msg.role === 'assistant' ? 'AI: ' : 'You: '}</strong>
+                      <strong>{msg.role === 'assistant' ? 'RiskAI: ' : 'You: '}</strong>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
                   ))}
