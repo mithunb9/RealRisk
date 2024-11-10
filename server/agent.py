@@ -35,7 +35,7 @@ def run_agent(address, location):
     risks = calculate_risk(zip_code, location, num_competitors, competitors_with_ratings, alerts, state_name, county, city_name)
 
     """ AI """
-    ai_response = execute(f"Given the following data, provide a summary of the risk factors and the overall risk score: {risks}. Only return the summary, no other text. I want your recommendation on whether to build in this location or not.", model="gpt-4o")
+    ai_response = execute(f"Given the following data, provide a summary of the risk factors and the overall risk score: {risks}. Only return the summary, no other text. I want your recommendation on whether to build in this location or not. Please do not include markdown formatting or any other formatting. Crime risk is only above average when it is above 50. Please give a breakdown of risk factors and you're overall concern. When giving a recommendation, give an 'overall' risk score.", model="gpt-4o")
 
     risks['ai_summary'] = ai_response.choices[0].message.content
 

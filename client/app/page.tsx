@@ -129,6 +129,11 @@ export default function Home() {
     try {
       setMessage("");
 
+      setConversationHistory(prevHistory => [
+        ...prevHistory,
+        { role: "user", content: message },
+      ]);
+
       const res = await fetch('http://localhost:6969/chat', {
         method: 'POST',
         headers: {
@@ -148,7 +153,6 @@ export default function Home() {
 
       setConversationHistory(prevHistory => [
         ...prevHistory,
-        { role: "user", content: message },
         { role: "assistant", content: data.message }
       ]);
 
@@ -361,10 +365,10 @@ export default function Home() {
                 />
               </div>
               <div className="flex flex-col h-[500px]">
-                <div className="flex-1 p-6 bg-gray-100 rounded-lg overflow-y-auto mb-4">
-                  <h2 className="text-xl font-bold mb-4">AI Analysis</h2>
+                <div className="flex-1 p-6 border border-gray rounded-lg overflow-y-auto mb-4">
+                  <h2 className="text-xl font-bold mb-4">Analysis</h2>
                   {conversationHistory.map((msg, index) => (
-                    <div key={index} className={`mb-4 ${msg.role === 'assistant' ? 'text-blue-600' : 'text-gray-700'}`}>
+                    <div key={index} className={`mb-4 ${msg.role === 'assistant' ? 'bg-gray-200 p-4 rounded-lg' : 'text-gray-700'}`}>
                       <strong>{msg.role === 'assistant' ? 'AI: ' : 'You: '}</strong>
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
@@ -415,6 +419,7 @@ export default function Home() {
                 components={(response as any).regulatory_risk?.components}
                 showDetails={true}
                 tooltips={(response as any).regulatory_risk?.tooltip}
+                response={(response as any).regulatory_risk?.response}
               />
               <Score 
                 score={(response as any).crime_risk?.risk_score || 0}

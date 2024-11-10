@@ -18,7 +18,7 @@ def get_regulatory_score(city: str, county: str) -> int:
     search_results = search(response.query)
 
     next_response = execute(
-        f"Given the following search results, provide a list of the most relevant documents and information to the query: {search_results} What are some regulatory documents, zoning ordinances, and other relevant documents and information?",
+        f"Given the following search results, provide a list of the most relevant documents and information to the query: {search_results} What are some regulatory documents, zoning ordinances, and other relevant documents and information? Use no special formatting including markdown or html.",
         model="gpt-4o",
     )
 

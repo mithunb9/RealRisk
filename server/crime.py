@@ -9,10 +9,19 @@ def load_crime_data():
 
 def get_crime_data(county, state):
     crime_df = load_crime_data()
-    filtered_df = crime_df[crime_df['county_name'] == f"{county}, {state}"]
-
-    print(filtered_df.describe())
-
+    filtered_df = crime_df[crime_df['county_name'] == f"{county} County, {state}"]
+    
     if filtered_df.empty:
         return 0
-    return filtered_df['crime_rate_per_100000'].values[0]
+        
+    crime_rate = float(filtered_df['crime_rate_per_100000'].values[0])
+    ranking = int(filtered_df['index'].values[0])
+    arrest_count = int(filtered_df['CPOPARST'].values[0])
+    crime_count = int(filtered_df['CPOPCRIM'].values[0])
+    
+    return {
+        'crime_rate': crime_rate,
+        'ranking': ranking,
+        'arrest_count': arrest_count,
+        'crime_count': crime_count
+    }

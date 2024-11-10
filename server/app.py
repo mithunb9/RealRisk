@@ -7,7 +7,7 @@ from location import get_lat_long, get_address_from_lat_long
 from ai import execute
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 class Address(BaseModel):
     street_address: str
@@ -64,7 +64,7 @@ def chat():
     message = data.get("message")
     history = data.get("history", [])
     
-    completion = execute(message, history=history)
+    completion = execute(message + " Please respond in a concise manner. Do not include markdown formatting.", history=history)
     
     response = {
         "message": completion.choices[0].message.content

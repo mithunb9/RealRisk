@@ -14,7 +14,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
@@ -31,6 +30,8 @@ import {
   ChartContainer,
 } from "@/components/ui/chart"
 
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
 interface ScoreProps {
   score: number
   title: string
@@ -38,6 +39,7 @@ interface ScoreProps {
   components?: Record<string, number>
   showDetails?: boolean
   tooltips?: Record<string, string>
+  response?: string
 }
 
 const getRiskColor = (score: number) => {
@@ -46,7 +48,9 @@ const getRiskColor = (score: number) => {
   return '#4DA167'
 }
 
-export default function Score({ score, title, description, components, showDetails, tooltips }: ScoreProps) {
+export default function Score({ score, title, description, components, showDetails, tooltips, response }: ScoreProps) {
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+
   const data = React.useMemo(() => [{
     name: "Risk Score",
     value: score,
@@ -133,19 +137,19 @@ export default function Score({ score, title, description, components, showDetai
             </TableHeader>
             <TableBody>
               {Object.entries(components).map(([key, value]) => (
-                <TableRow key={key}>
+                <TableRow key={key} onClick={() => key === 'Regulatory Score' && setDialogOpen(true)}>
                   <TableCell className="font-medium">
                     {tooltips?.[key] ? (
                       <Tooltip>
                         <TooltipTrigger className="cursor-help text-left">
-                          {key.replace(/_/g, ' ')}
+                          {key}
                         </TooltipTrigger>
                         <TooltipContent>
                           {tooltips[key]}
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      key.replace(/_/g, ' ')
+                      key
                     )}
                   </TableCell>
                   <TableCell className="text-left">
@@ -157,6 +161,17 @@ export default function Score({ score, title, description, components, showDetai
           </Table>
         )}
       </CardFooter>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-3xl whitespace-pre-wrap">
+          <DialogHeader>
+            <DialogTitle>Regulatory Score</DialogTitle>
+          </DialogHeader>
+          <div className="h-96 overflow-y-auto">
+            <p>The regulatory score we used is calculated by AI. Here is the breakdown of the score: </p>
+            <p>{response}</p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
