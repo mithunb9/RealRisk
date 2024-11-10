@@ -9,10 +9,10 @@ class Competitors(BaseModel):
     competitors: list[str]
 
 def run_agent(address, location):
-    zip_code = address['zip_code']
-    state_name = address['state']
-    city_name = address['city']
-    county = address['county']
+    zip_code = address.zip_code
+    state_name = address.state
+    city_name = address.city
+    county = address.county
 
     """ COMPETITORS """
     competitors_search = search(f"housing builders near {city_name}, {state_name} {zip_code}", zip_code)

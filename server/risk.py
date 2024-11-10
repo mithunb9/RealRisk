@@ -1,8 +1,10 @@
 from db import get_census_data_from_cache
 from weather import get_air_quality_data, get_alert_summary
+from census_data import get_census_extras
 from crime import get_crime_data
 import numpy as np
 from regulation import get_regulatory_score
+from ai import get_points_of_interest
 
 def percent_difference(a, b):
     return (a - b) / ((a + b) / 2)
@@ -33,6 +35,8 @@ def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings
         'competitors_with_ratings': competitors_with_ratings
     }
 
+    extras = get_extras(city, county, state_name, zip_code)
+
     return {
         'data': data,
         'demographic_risk': demographic_risk,
@@ -40,7 +44,22 @@ def calculate_risk(zip_code, location, num_competitors, competitors_with_ratings
         'environment_risk': environment_risk,
         'regulatory_risk': regulatory_risk,
         'crime_risk': crime_risk,
-        'location': location
+        'location': location,
+        'extras': extras
+    }
+
+def get_extras(city, county, state_name, zip_code):
+    points_of_interest = get_points_of_interest(city, county, state_name)
+    census_extras = get_census_extras(zip_code)
+
+    return {
+        'City': city,
+        'County': county,
+        'State': state_name,
+        'Zip Code': zip_code,
+        'Points of Interest': points_of_interest[0],
+        'New Points of Interest': points_of_interest[1],
+        **census_extras
     }
 
 def normalize_ratings(competitors_with_ratings):

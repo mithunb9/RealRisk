@@ -3,6 +3,8 @@ import os
 import pandas as pd
 from us import states
 import json
+from geopy.geocoders import Nominatim
+
 c = Census(os.getenv("CENSUS_API_KEY"))
 
 RISK_VARIABLES = {
@@ -156,3 +158,22 @@ def get_county_fips(match):
             return entry[2]
         
     return None
+
+def get_census_extras(zip_code):
+    data = c.acs5.state_zipcode(
+        ['B01001_001E', 'B25002_001E', 'B08301_010E'],
+        str(zip_code)[:2],
+        zip_code
+    )
+    
+    if not data:
+        return {
+            'Land Area': 'N/A',
+            'Green Space': 'N/A', 
+            'Public Transport Access': 'N/A'
+        }
+
+    return {
+        'Land Area': f"{'{:,}'.format(int(str(data[0].get('B01001_001E', 0))[:2]))} sq mi",
+        'Green Space': f"{'{:,}'.format(int(data[0].get('B25002_001E', 0)))} acres",
+    }

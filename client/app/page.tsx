@@ -16,6 +16,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, Send } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import Extras from "./components/extras";
+import Head from "next/head";
 
 const addressFormSchema = z.object({
   streetAddress: z.string().min(1, "Street address is required"),
@@ -167,6 +169,9 @@ export default function Home() {
 
   return (
     <TooltipProvider>
+      <Head>
+        <title>RealRisk</title>
+      </Head>
       <div className="min-h-screen flex flex-col items-center justify-center p-8">
         {!response ? (
           <div className="flex gap-8 w-full max-w-6xl">
@@ -430,6 +435,9 @@ export default function Home() {
                 tooltips={(response as any).crime_risk?.tooltip}
               />
             </div>
+            {(response as any).extras && (
+              <Extras extras={(response as any).extras} />
+            )}
           </div>
         )}
       </div>

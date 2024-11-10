@@ -3,7 +3,7 @@ from flask_cors import CORS
 from pydantic import BaseModel
 import usaddress
 from agent import run_agent
-from location import get_lat_long, get_address_from_lat_long
+from location import get_lat_long, get_address_from_lat_long, get_county_from_coordinates
 from ai import execute
 
 app = Flask(__name__)
@@ -49,9 +49,32 @@ def hello_world():
                             zip_code=parsed_location.get('ZipCode', ''),
                             county=county  
                         )
+                else:
+                    address_str = get_address_from_lat_long(float(lat), float(lon))
+                    if address_str:
+                        parsed_location = usaddress.tag(address_str)[0]
+                        county = get_county_from_coordinates(float(lat), float(lon))
+                        address = Address(
+                            street_address=parsed_location.get('AddressNumber', '') + ' ' + 
+                                         parsed_location.get('StreetName', '') + ' ' + 
+                                         parsed_location.get('StreetNamePostType', ''),
+                            city=parsed_location.get('PlaceName', ''),
+                            state=parsed_location.get('StateName', ''),
+                            zip_code=parsed_location.get('ZipCode', ''),
+                            county=county
+                        )
+
+                        location = address.city + ', ' + address.state + ' ' + address.zip_code
+
+                        location_dict = {
+                            'latitude': float(lat),
+                            'longitude': float(lon),
+                            'county': county,
+                            'location': location
+                        }
 
             if address:
-                return run_agent(address.model_dump(), location_dict)
+                return run_agent(address, location_dict)
             else:
                 return jsonify({'message': 'No city found', 'error': False})
     except Exception as e:
